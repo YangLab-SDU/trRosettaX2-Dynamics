@@ -32,11 +32,11 @@ The main script inference.py performs structure prediction. It supports both sin
 * **Single-sample mode:** Predict structure for one sequence.
 	* **example**
   ```bash
-  python inference.py \
-    --fasta /data/1TNQ-33_A.fasta \
-    --msa /data/1TNQ-33_A.a3m \
-    --name 1TNQ \
-    --save_dir /output \
+  python run_inference.py \
+    --fasta ./example/seq.fasta \
+    --msa ./data/seq.a3m \
+    --name seq \
+    --save_dir ./example/output \
     [--init_num 20] [--Nmax 300] [--angle/--no-angle] [--mult_two_models/--no-mult_two_models]
   ```
 
@@ -56,11 +56,11 @@ The main script inference.py performs structure prediction. It supports both sin
 	* **example**
   
   ```bash
-  python inference.py \
-    --fasta_dir /data \
-    --msa_dir /data \
-    --name_lst /data/name_lst \
-    --save_dir /output \
+  python run_inference.py \
+    --fasta_dir ./example \
+    --msa_dir ./example \
+    --name_lst ./example/name_lst \
+    --save_dir ./example/output \
   [--init_num 10] [--Nmax 300] [--angle/--no-angle] [--mult_two_models/--no-mult_two_models]
   ```
   
@@ -71,7 +71,7 @@ The main script inference.py performs structure prediction. It supports both sin
 
 Each sample named `name` will have results in `save_dir/name/`.
 
-### Evaluation
+### Evaluation (Optional)
 
 Use `evaluate.py` to compare predicted structures against native structures:
 
@@ -90,7 +90,7 @@ python evaluate.py \
 
 The script prints summary statistics (min RMSD, max TM-score, etc.) and saves detailed results to the specified output.
 
-### Clustering
+### Clustering (Optional)
 
 Use `cluster.py` to cluster predicted structures:
 
