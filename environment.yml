@@ -10,7 +10,7 @@ channels:
   - nvidia
   - conda-forge
 dependencies:
-  - numpy=2.1.2
+  - numpy=1.25.2
   - python=3.10
   - pyrosetta=2024.39+release.59628fb
   - pytorch::pytorch=2.5.1=py3.10_cuda11.8_cudnn9.1.0_0
