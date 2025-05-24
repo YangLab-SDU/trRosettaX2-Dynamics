@@ -7,8 +7,8 @@ Installation
 ### Step 1. Clone the repository
 
 ```bash
-git clone xxxx.git
-cd trX2_Mult
+git clone https://github.com/YangLabSDU/trX2-Mult.git
+cd trX2-Mult
 ```
 ### Step 2. Environment installation
 
