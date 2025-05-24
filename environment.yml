@@ -1,0 +1,27 @@
+name: trX2mu
+channels:
+  - https://conda.rosettacommons.org
+  #  uncomment the four lines below if you are located in China mainland
+  # - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/
+  # - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+  # - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+  # - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - numpy=2.1.2
+  - python=3.10
+  - pyrosetta=2024.39+release.59628fb
+  - pytorch::pytorch=2.5.1=py3.10_cuda11.8_cudnn9.1.0_0
+  - pytorch::torchaudio=2.5.1=py310_cu118
+  - pytorch::torchvision=0.20.1=py310_cu118
+  - pandas==2.1.0
+  - matplotlib==3.8.0
+  - pip
+  - pip:
+      - einops==0.8.1
+      - scipy==1.11.2
+      - scikit_learn==1.2.2
+      - biopython==1.81
+      - esm

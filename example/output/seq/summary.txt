@@ -1,0 +1,6 @@
+holo best_RMSD: 3.931 model: seq2 best_TM_score: 0.6269 model: initial1_1
+apo best_RMSD: 3.018 model: seq3 best_TM_score: 0.6661 model: seq3
+Mean RMSD: 3.47
+Mean TM-score: 0.65
+Min RMSD: 3.02
+Max TM-score: 0.67
