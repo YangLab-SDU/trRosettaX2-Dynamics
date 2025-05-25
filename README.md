@@ -1,4 +1,4 @@
-# trX2-Mult: Predicting Alternative Protein Conformations through a Novel Output-Driven Approach
+# trRosettaX2-Dynamics: Predicting Alternative Protein Conformations through a Novel Output-Driven Approach
 
 
 
@@ -8,7 +8,7 @@ Installation
 
 ```bash
 git clone https://github.com/YangLabSDU/trX2-Mult.git
-cd trX2-Mult
+cd trRosettaX2-Dynamics
 ```
 ### Step 2. Environment installation
 
@@ -19,7 +19,7 @@ A new environment for the trX2-Mult can be created and activated with conda
 conda env create -f environment.yml
 
 # acitvate the installed environment
-conda activate trX2mu
+conda activate trX2dy
 ```
 ----
 
