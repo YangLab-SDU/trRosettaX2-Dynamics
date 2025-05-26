@@ -5,7 +5,7 @@
 
 Overview
 ----
-[![Python version](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/downloads/)  [![PyTorch version](https://img.shields.io/badge/PyTorch-2.0%2B-red?style=flat-square)](https://pytorch.org/) [![PyTorch_Geometric: 2020+](https://img.shields.io/badge/PyTorch_Geometric-2.0%2B-yellow?style=flat-square)](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html) [![PyRosetta: 2020+](https://img.shields.io/badge/PyRosetta-2020%2B-green?style=flat-square)](https://www.pyrosetta.org/downloads)
+[![Python version](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/downloads/)  [![PyTorch version](https://img.shields.io/badge/PyTorch-2.0%2B-red?style=flat-square)](https://pytorch.org/) [![PyRosetta: 2020+](https://img.shields.io/badge/PyRosetta-2020%2B-green?style=flat-square)](https://www.pyrosetta.org/downloads)
 
 This package is a part of trRosettaX2-Dynamics, a deep learning-based  alternative conformations and dynamics structures prediction protocol. 
 
