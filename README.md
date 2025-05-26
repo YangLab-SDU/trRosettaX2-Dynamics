@@ -2,6 +2,17 @@
 
 
 
+
+Overview
+----
+[![Python version](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/downloads/)  [![PyTorch version](https://img.shields.io/badge/PyTorch-2.0%2B-red?style=flat-square)](https://pytorch.org/) [![PyTorch_Geometric: 2020+](https://img.shields.io/badge/PyTorch_Geometric-2.0%2B-yellow?style=flat-square)](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html) [![PyRosetta: 2020+](https://img.shields.io/badge/PyRosetta-2020%2B-green?style=flat-square)](https://www.pyrosetta.org/downloads)
+
+This package is a part of trRosettaX2-Dynamics, a deep learning-based  alternative conformations and dynamics structures prediction protocol. 
+
+Starting from an MSA, the trRosettaX2-Dynamics pipeline comprises the following steps: 
+
+ - Secondary structure (SS) prediction using a transformer network.
+ - Generating dynamic structures through a physics-based sampling process
 Installation
 ----
 ### Step 1. Clone the repository
@@ -12,7 +23,7 @@ cd trRosettaX2-Dynamics
 ```
 ### Step 2. Environment installation
 
-A new environment for the trX2-Mult can be created and activated with conda 
+A new environment for the trX2-D can be created and activated with conda 
 
 ```
 # create conda environment for trX2-Mult
@@ -47,7 +58,7 @@ The main script inference.py performs structure prediction. It supports both sin
   * Optional:
 
     * `--init_num`: Initial number of structures to generate (default: 10).
-    * `--Nmax`: Maximum number of iterations (default: 300).
+    * `--Nmax`: Maximum number of iterations (default: np.inf).
     * `--angle`/`--no-angle`: Include (or exclude) orientation angles (default: included).
     * `--mult_two_models`/`--no-mult_two_models`: Use two trX2 variant (NMR and X-ray)  or only trRosettaX2 (NMR) (default: used).
 
