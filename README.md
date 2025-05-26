@@ -1,4 +1,4 @@
-# trRosettaX2-Dynamics: Predicting Alternative Protein Conformations through a Novel Output-Driven Approach
+# trRosettaX2-Dynamics: **Generating dynamic structures through physics-based sampling of trRosettaX2-predicted inter-residue geometries**
 
 
 
