@@ -31,26 +31,12 @@ def read_fasta(file):
                 fasta = fasta + line
     return fasta
 
-def logo():
-    print('*********************************************************************')
-    print('\
-*           _        ____                _   _                      *\n\
-*          | |_ _ __|  _ \ ___  ___  ___| |_| |_ __ _               *\n\
-*          | __| \'__| |_) / _ \/ __|/ _ \ __| __/ _` |              *\n\
-*          | |_| |  |  _ < (_) \__ \  __/ |_| || (_| |              *\n\
-*           \__|_|  |_| \_\___/|___/\___|\__|\__\__,_|              *')
-    print('*                                                                   *')
-    print("* J Yang et al, Improved protein structure prediction using         *\n* predicted interresidue orientations, PNAS, 117: 1496-1503 (2020)  *")
-    print("* Please email your comments to: yangjy@nankai.edu.cn               *")
-    print('*********************************************************************')
-
 
 def main():
     ########################################################
     # process inputs
     ########################################################
 
-    logo()
     # read params
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     with open(scriptdir + '/data/params.json') as jsonfile:
