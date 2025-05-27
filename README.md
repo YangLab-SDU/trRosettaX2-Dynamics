@@ -13,6 +13,7 @@ Starting from an MSA, the trRosettaX2-Dynamics pipeline comprises the following 
 
  - Secondary structure (SS) prediction using a transformer network.
  - Generating dynamic structures through a physics-based sampling process
+----
 Installation
 ----
 ### Step 1. Clone the repository
