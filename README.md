@@ -11,7 +11,7 @@ This package is a part of trRosettaX2-Dynamics, a deep learning-based  alternati
 
 Starting from an MSA, the trRosettaX2-Dynamics pipeline comprises the following steps: 
 
- - Secondary structure (SS) prediction using a transformer network.
+ - 2D geometries prediction using a transformer network.
  - Generating dynamic structures through a physics-based sampling process
 ----
 Installation
