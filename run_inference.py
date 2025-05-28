@@ -6,7 +6,7 @@ import shutil
 import numpy as np
 
 from utils.utils import (
-    folding_with_pred_pdb,
+    folding_with_pred_npz,
     calculate_reliability_score,
     get_npz_from_pred_pdb,
     pred_2d_geometry,
@@ -46,7 +46,7 @@ def generate_npz_and_pdb(
     """
     print("Start generating the initial structures")
     # Generate N initial structures using trRosetta��
-    folding_with_pred_pdb(
+    folding_with_pred_npz(
         base_npz=f'"{initial_npz}"',
         base_fasta=f'"{fasta}"',
         base_out=f'"{pred_pdb_dir}"',
@@ -100,7 +100,7 @@ def generate_npz_and_pdb(
         if os.path.exists(current_npz):
             old_tmp_dist = np.load(current_npz)["tmp"]
         print(f"Start generating structure {iter_n}")
-        folding_with_pred_pdb(
+        folding_with_pred_npz(
             base_npz=f'"{current_npz}"',
             base_fasta=f'"{fasta}"',
             base_out=f'"{pred_pdb_dir}"',
