@@ -19,7 +19,7 @@ Installation
 ### Step 1. Clone the repository
 
 ```bash
-git clone https://github.com/YangLabSDU/trX2-Mult.git
+git clone https://github.com/YangLab-SDU/trRosettaX2-Dynamics.git
 cd trRosettaX2-Dynamics
 ```
 ### Step 2. Environment installation
@@ -27,7 +27,7 @@ cd trRosettaX2-Dynamics
 A new environment for the trX2-D can be created and activated with conda 
 
 ```
-# create conda environment for trX2-Mult
+# create conda environment for trRosettaX2-Dynamics
 conda env create -f environment.yml
 
 # acitvate the installed environment
@@ -49,7 +49,7 @@ The main script inference.py performs structure prediction. It supports both sin
     --msa ./data/seq.a3m \
     --name seq \
     --save_dir ./example/output \
-    [--init_num 20] [--Nmax 300] [--angle/--no-angle] [--mult_two_models/--no-mult_two_models]
+    [--init_num 10] [--Nmax 300] [--angle/--no-angle] [--mult_two_models/--no-mult_two_models]
   ```
 
   * `--fasta`: Path to the FASTA file.
