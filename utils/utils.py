@@ -15,6 +15,7 @@ from sklearn.cluster import KMeans
 import torch
 import torch.nn as nn
 from Bio.PDB import PPBuilder,PDBParser
+from concurrent.futures import ThreadPoolExecutor
 # * Processing PDB to 2D geometries:dist, omega, theta, phi
 
 # region
@@ -474,34 +475,30 @@ def get_npz_from_pred_pdb(
 
 # region
 
-def run_trRosetta(
-    base_npz='"../output/1TNQ/pred_npz/1TNQ_NMR.npz"',
-    base_fasta='"../data/1TNQ-33_A.fasta"',
-    base_out='"../output/1TNQ/pred_pdb/"',
-    out_name="pred_5dow",
-    options="-m 2 -r no-idp --orient",
-    repeat=0,
-    start_id=0,
-):
-
+def folding_with_pred_pdb(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
+                base_fasta="../data/1TNQ-33_A.fasta",
+                base_out="../output/1TNQ/pred_pdb/",
+                out_name="pred_1TNQ",
+                options="-m 2 -r no-idp --orient",
+                repeat=0,
+                start_id=0):
     base_command = f'{sys.executable} "./folding/folding.py"'
     try:
-        os.makedirs(base_out[1:-1], exist_ok=True)
+        os.makedirs(base_out, exist_ok=True)
     except FileExistsError:
         pass
-    if repeat:
-        base_out = f'{base_out[:-1]}{out_name}{{}}.pdb"'
-        for i in range(start_id, repeat + start_id):
-            out_file = base_out.format(i)
-            command = f"{base_command} -NPZ {base_npz} -FASTA {base_fasta} -OUT {out_file} {options}"
-            subprocess.run(command, shell=True)
-            print(f"Executed: {command}")
-    else:
-        base_out = f'{base_out[:-1]}{out_name}{{}}.pdb"'
-        out_file = base_out.format('')
+
+    def run_command(i):
+        out_file = f"{base_out}{out_name}{i}.pdb"
         command = f"{base_command} -NPZ {base_npz} -FASTA {base_fasta} -OUT {out_file} {options}"
         subprocess.run(command, shell=True)
         print(f"Executed: {command}")
+
+    if repeat:
+        with ThreadPoolExecutor() as executor:
+            executor.map(run_command, range(start_id, repeat + start_id))
+    else:
+        run_command('')
 
 # endregion
 
