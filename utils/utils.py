@@ -475,7 +475,7 @@ def get_npz_from_pred_pdb(
 
 # region
 
-def folding_with_pred_pdb(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
+def folding_with_pred_npz(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
                 base_fasta="../data/1TNQ-33_A.fasta",
                 base_out="../output/1TNQ/pred_pdb/",
                 out_name="pred_1TNQ",
