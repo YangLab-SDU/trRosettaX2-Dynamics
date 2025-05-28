@@ -22,7 +22,16 @@ Installation
 git clone https://github.com/YangLab-SDU/trRosettaX2-Dynamics.git
 cd trRosettaX2-Dynamics
 ```
-### Step 2. Environment installation
+### Step 2. Download the network weights
+
+```bash
+wget http://yanglab.qd.sdu.edu.cn/trRosettaRNA/download/params_trRNA2.tar.bz2
+mkdir -p trRosettaX2/model_pth
+cd trRosettaX2/model_pth
+tar -xjf pretrained_models.tar.bz2
+```
+
+### Step 3. Environment installation
 
 A new environment for the trX2-D can be created and activated with conda 
 
