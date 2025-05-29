@@ -34,14 +34,17 @@ cd ../..
 
 ### Step 3. Environment installation
 
-A new environment for the trX2-D can be created and activated with conda 
+It is recommended to use `mamba` to manage the Python dependencies, which can be installed following [Mamba Installation — documentation](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html). You can use [Conda](https://www.anaconda.com/docs/getting-started/miniconda/install) instead, but Mamba is highly recommended as it's much faster. If you already have Conda installed, please install Mamba into the base environment with `conda install -n base mamba -c conda-forge` to avoid potential conflicts, rather than performing a separate Mamba installation.
+
+Once the `mamba` is installed, A new environment for the trRosettaX2-Dynamics can be created and activated:
+
 
 ```
-# create conda environment for trRosettaX2-Dynamics
-conda env create -f environment.yml
+# create environment for trRosettaX2-Dynamics
+mamba env create -f environment.yml
 
 # acitvate the installed environment
-conda activate trX2dy
+mamba activate trX2dy
 ```
 ----
 
