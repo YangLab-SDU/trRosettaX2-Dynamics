@@ -29,6 +29,7 @@ mkdir -p trRosettaX2/model_pth
 cd trRosettaX2/model_pth
 wget https://yanglab.qd.sdu.edu.cn/trRosetta/benchmark_dynamics/pretrained_models.tar.bz2
 tar -xjf pretrained_models.tar.bz2
+cd ../..
 ```
 
 ### Step 3. Environment installation
