@@ -7,7 +7,7 @@ Overview
 ----
 [![Python version](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/downloads/)  [![PyTorch version](https://img.shields.io/badge/PyTorch-2.0%2B-red?style=flat-square)](https://pytorch.org/) [![PyRosetta: 2020+](https://img.shields.io/badge/PyRosetta-2020%2B-green?style=flat-square)](https://www.pyrosetta.org/downloads)
 
-This package is a part of trRosettaX2-Dynamics, a deep learning-based  alternative conformations and dynamics structures prediction protocol. 
+This package contains the source code for trRosettaX2-Dynamics, a deep learning-based protocol that predicts alternative conformations and dynamics structures of proteins. 
 
 Starting from an MSA, the trRosettaX2-Dynamics pipeline comprises the following steps: 
 
@@ -43,7 +43,7 @@ Once the `mamba` is installed, a new environment for the trRosettaX2-Dynamics ca
 # create environment for trRosettaX2-Dynamics
 mamba env create -f environment.yml
 
-# acitvate the installed environment
+# activate the installed environment
 mamba activate trX2dy
 ```
 ----
@@ -53,7 +53,7 @@ mamba activate trX2dy
 Usage
 ----
 ### Running Inference
-The main script inference.py performs structure prediction. It supports both single-sample and batch modes.
+The main script run_inference.py performs structure prediction. It supports both single-sample and batch modes.
 * **Single-sample mode:** Predict structure for one sequence.
 	* **example**
   ```bash
@@ -110,7 +110,7 @@ python evaluate.py \
 
 * `--native_dir`: Directory of native (reference) PDB files.
 * `--pred_dir`: Directory of predicted PDB files.
-* `--output`: (Optional) Output summary file or directory. If ending in `.txt`, a file is created; otherwise a directory is used (summary.txt inside). Default is `pred_dir/summary.txt`.
+* `--output`: (Optional) Output summary file or directory. If ending in `.txt`, a file is created; otherwise a directory is used (summary.txt inside). The default is `pred_dir/summary.txt`.
 * `--align`: Use sequence alignment in TM-score (`-seq` option).
 
 The script prints summary statistics (min RMSD, max TM-score, etc.) and saves detailed results to the specified output.
