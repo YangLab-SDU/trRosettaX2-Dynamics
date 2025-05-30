@@ -2,7 +2,7 @@
 """Structure clustering script to group similar PDB models."""
 import os
 import argparse
-from utils.utils import save_cluster_result
+from utils_trX2dy.utils import save_cluster_result
 
 def main():
     parser = argparse.ArgumentParser(
