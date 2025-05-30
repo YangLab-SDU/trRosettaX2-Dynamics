@@ -8,9 +8,9 @@ import numpy as np
 from pyrosetta import *
 from pyrosetta.rosetta.protocols.minimization_packing import MinMover
 
-from utils.arguments import *
+from utils_ros.arguments import *
 #from utils_trX2dy.utils_data import read_fasta
-from utils.utils_ros import *
+from utils_ros.utils_ros import *
 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 

@@ -13,6 +13,7 @@ dependencies:
   - numpy=1.25.2
   - python=3.10
   - pyrosetta=2024.39+release.59628fb
+  - cudatoolkit=11.8
   - pytorch::pytorch=2.5.1=py3.10_cuda11.8_cudnn9.1.0_0
   - pytorch::torchaudio=2.5.1=py310_cu118
   - pytorch::torchvision=0.20.1=py310_cu118

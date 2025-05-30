@@ -262,8 +262,8 @@ if __name__ == "__main__":
                         help="Include orientation angles (default: enabled).")
     parser.add_argument("--mult_two_models", action=argparse.BooleanOptionalAction, default=True,
                         help="Use two models (trX2(NMR) and trX2(X-ray)) to predict 2D geometry (default: enabled).")
-    parser.add_argument("--device", type=str, default=None,
-                        help="Torch device (e.g., 'cuda:0' or 'cpu').")
+    parser.add_argument("--device", type=str, default='cuda:0',
+                        help="Torch device (e.g., 'cuda:0'(default) or 'cpu').")
     args = parser.parse_args()
 
     # Validate input mode

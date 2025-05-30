@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from pyrosetta import *
-from utils_trX2dy.top_prob import *
+# from utils_trX2dy.top_prob import *
 
 def gen_rst(npz, tmpdir, params):
     if params['USE_ORIENT'] is True or params['USE_ORIENT'] == "True":
@@ -784,19 +784,19 @@ def add_idr_rst(pose, rst, idr, params, nogly=False):
 
     os.remove(tmpname)
 
-def cal_cscore(npz):
-    prob, sep = top_dist(npz['dist'], 12)
-    if os.path.exists("good_temp.txt"):
-        cscore = 0.9342 * prob + 0.2333 * sep + 0.0957
-    else:
-        cscore = 1.158 * prob + 0.1878 * sep + 0.0318
-    if cscore > 1:
-        cscore = 1.0
-    elif cscore < 0.1:
-        cscore = 0.1
-    with open("cscore.txt", 'w+') as f1:
-        print("Estimated TM-score of the top-predicted model: ", round(cscore, 2), file=f1)
-    return cscore
+# def cal_cscore(npz):
+#     prob, sep = top_dist(npz['dist'], 12)
+#     if os.path.exists("good_temp.txt"):
+#         cscore = 0.9342 * prob + 0.2333 * sep + 0.0957
+#     else:
+#         cscore = 1.158 * prob + 0.1878 * sep + 0.0318
+#     if cscore > 1:
+#         cscore = 1.0
+#     elif cscore < 0.1:
+#         cscore = 0.1
+#     with open("cscore.txt", 'w+') as f1:
+#         print("Estimated TM-score of the top-predicted model: ", round(cscore, 2), file=f1)
+#     return cscore
 
 
 
