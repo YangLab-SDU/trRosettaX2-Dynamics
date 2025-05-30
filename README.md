@@ -59,7 +59,7 @@ The main script inference.py performs structure prediction. It supports both sin
   ```bash
   python run_inference.py \
     --fasta ./example/seq.fasta \
-    --msa ./data/seq.a3m \
+    --msa ./example/seq.a3m \
     --name seq \
     --save_dir ./example/output \
     [--init_num 10] [--Nmax 300] [--angle/--no-angle] [--mult_two_models/--no-mult_two_models]
