@@ -5,7 +5,7 @@ import argparse
 import shutil
 import numpy as np
 
-from utils.utils import (
+from utils_trX2dy.utils import (
     folding_with_pred_npz,
     calculate_reliability_score,
     get_npz_from_pred_pdb,

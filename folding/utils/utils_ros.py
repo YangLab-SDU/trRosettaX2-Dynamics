@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from pyrosetta import *
-from utils.top_prob import *
+from utils_trX2dy.top_prob import *
 
 def gen_rst(npz, tmpdir, params):
     if params['USE_ORIENT'] is True or params['USE_ORIENT'] == "True":

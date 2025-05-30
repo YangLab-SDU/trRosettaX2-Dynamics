@@ -24,4 +24,3 @@ dependencies:
       - scipy==1.11.2
       - scikit_learn==1.2.2
       - biopython==1.81
-      - esm

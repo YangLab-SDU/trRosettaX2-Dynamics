@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from einops import rearrange
-# from utils_wwk.utils_torch import Symm
+from einops.layers.torch import Rearrange
 from torch.utils.checkpoint import checkpoint
 from functools import partial
 
@@ -17,6 +17,15 @@ def apply_dropout(*, tensor, rate, is_training, broadcast_dim=None):
         return keep * tensor / keep_rate
     else:
         return tensor
+
+
+class Symm(nn.Module):
+    def __init__(self, pattern):
+        super(Symm, self).__init__()
+        self.pattern = pattern
+
+    def forward(self, x):
+        return (x + Rearrange(self.pattern)(x)) / 2
 
 
 class InputEmbedder(nn.Module):
@@ -56,34 +65,6 @@ class relpos(nn.Module):
         assert d_onehot.sum(dim=-1).min() == 1
         p = self.linear(d_onehot)
         return p
-
-
-# TODO
-class RecyclingEmbedder(nn.Module):
-    def __init__(self):
-        super(RecyclingEmbedder, self).__init__()
-        pass
-
-
-# TODO
-class TemplatePairStack(nn.Module):
-    def __init__(self):
-        super(TemplatePairStack, self).__init__()
-        pass
-
-
-# TODO
-class TemplatePointwiseAttention(nn.Module):
-    def __init__(self):
-        super(TemplatePointwiseAttention, self).__init__()
-        pass
-
-
-# TODO
-class ExtraMsaStack(nn.Module):
-    def __init__(self):
-        super(ExtraMsaStack, self).__init__()
-        pass
 
 
 class DropoutWrapper(nn.Module):
@@ -158,16 +139,21 @@ class EvoformerBlock(nn.Module):
             dropout_rate_pair=.25,
     ):
         super(EvoformerBlock, self).__init__()
-        self.msa_row_attn = DropoutWrapper(MSARowAttention(in_dim=in_dim, dim=dim_msa), wise='row', rate=dropout_rate_msarow)
+        self.msa_row_attn = DropoutWrapper(MSARowAttention(in_dim=in_dim, dim=dim_msa), wise='row',
+                                           rate=dropout_rate_msarow)
         self.msa_col_attn = MSAColAttention(in_dim=in_dim, dim=dim_msa)
         self.msa_trans = MSATransition(dim=in_dim)
 
         self.msa2pair = OuterProductMean(in_dim=in_dim, dim=dim_outer)
 
-        self.pair_multi_out = DropoutWrapper(TriangleMultiplication(in_dim=in_dim, dim=dim_pair_multi, direct='outgoing'), rate=dropout_rate_pair)
-        self.pair_multi_in = DropoutWrapper(TriangleMultiplication(in_dim=in_dim, dim=dim_pair_multi, direct='incoming'), rate=dropout_rate_pair)
-        self.pair_row_attn = DropoutWrapper(TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, wise='row'), rate=dropout_rate_pair)
-        self.pair_col_attn = DropoutWrapper(TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, wise='col'), wise='col', rate=dropout_rate_pair)
+        self.pair_multi_out = DropoutWrapper(
+            TriangleMultiplication(in_dim=in_dim, dim=dim_pair_multi, direct='outgoing'), rate=dropout_rate_pair)
+        self.pair_multi_in = DropoutWrapper(
+            TriangleMultiplication(in_dim=in_dim, dim=dim_pair_multi, direct='incoming'), rate=dropout_rate_pair)
+        self.pair_row_attn = DropoutWrapper(TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, wise='row'),
+                                            rate=dropout_rate_pair)
+        self.pair_col_attn = DropoutWrapper(TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, wise='col'), wise='col',
+                                            rate=dropout_rate_pair)
 
         self.pair_trans = PairTransition(dim=in_dim)
 
@@ -214,8 +200,7 @@ class MSARowAttention(nn.Module):
         gate = self.to_gate(m)
         gate = rearrange(gate, 'b i j (h d)->b i j h d', h=self.n_heads)
         scale = q.size(-1) ** .5
-        # TODO
-        # 可以改成加权求和
+
         attn = (torch.einsum('brihd,brjhd->bhij', q, k) / scale + b).softmax(-1)
         out = torch.einsum('bhij,brjhd->brihd', attn, v)
         out = rearrange(gate * out, 'b r i h d->b r i (h d)')
@@ -277,8 +262,7 @@ class OuterProductMean(nn.Module):
         nrow = m.size(1)
         m = self.norm(m)
         a, b = torch.chunk(self.linear(m), 2, -1)
-        # TODO
-        # 这里可以改成加权平均
+
         out = torch.einsum('bric,brjd->bijcd', a, b) / nrow
         out = rearrange(out, 'b i j c d->b i j (c d)')
         z = self.linear_out(out)
@@ -299,7 +283,7 @@ class TriangleMultiplication(nn.Module):
             nn.Linear(in_dim, in_dim),
             nn.Sigmoid()
         )
-        self.linear_out = nn.Linear(dim,in_dim)
+        self.linear_out = nn.Linear(dim, in_dim)
         # self.linear_out.weight.data.fill_(0.)
         # self.linear_out.bias.data.fill_(0.)
         self.to_out = nn.Sequential(

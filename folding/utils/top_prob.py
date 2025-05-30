@@ -3,24 +3,9 @@ import sys
 import numpy as np
 
 
-def logo():
-    print('*********************************************************************')
-    print('\
-*           _        ____                _   _                      *\n\
-*          | |_ _ __|  _ \ ___  ___  ___| |_| |_ __ _               *\n\
-*          | __| \'__| |_) / _ \/ __|/ _ \ __| __/ _` |              *\n\
-*          | |_| |  |  _ < (_) \__ \  __/ |_| || (_| |              *\n\
-*           \__|_|  |_| \_\___/|___/\___|\__|\__\__,_|              *')
-    print('*                                                                   *')
-    print("* J Yang et al, Improved protein structure prediction using         *\n* predicted interresidue orientations, PNAS, 117: 1496-1503 (2020)  *")
-    print("* Please email your comments to: yangjy@nankai.edu.cn               *")
-    print('*********************************************************************')
-
-
 def main():
     if (len(sys.argv) < 2):
 
-        logo()
         print('\n This script computes the average probability of the top 15L long+medium-range \n (i.e., |i-j|>=12) predicted distance from the npz file.\n')
         print(' Please note that higher probability usually yileds more accurate 3D models.\n')
 
@@ -32,7 +17,6 @@ def main():
     NPZ = sys.argv[1]
     dat = np.load(NPZ)['dist']
     #print(dat)
-    logo()
     dist,sepmax=top_dist(dat,12)
     print("\nAverage probability of the top predicted distances: %.2f\n" %(dist))
 

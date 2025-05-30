@@ -9,11 +9,8 @@ from pyrosetta import *
 from pyrosetta.rosetta.protocols.minimization_packing import MinMover
 
 from utils.arguments import *
-#from utils.utils_data import read_fasta
+#from utils_trX2dy.utils_data import read_fasta
 from utils.utils_ros import *
-
-# from QA import QA
-# from utils_qa.plddt_plot import plot
 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
@@ -274,13 +271,8 @@ def main():
     # save final model
     ########################################################
     pose.dump_pdb(args.OUT)
-    # cal_cscore(npz)
-
-    # local_plddt = QA(args.OUT, args.FASTA, args.OUT.replace('.pdb', '.plddt'), dssp_bin=f'{os.environ["CONDA_PREFIX"]}/bin/mkdssp')
-    # plot(local_plddt, args.OUT.replace('.pdb', '.plddt.png'))
 
     print('\ndone')
-    # print(f'\n*** predicted lDDT score:{local_plddt.mean():.3f} ***')
 
 
 if __name__ == '__main__':

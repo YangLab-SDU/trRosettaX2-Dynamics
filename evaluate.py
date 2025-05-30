@@ -3,7 +3,7 @@
 import os
 import argparse
 import shutil
-from utils.evaluate_utils import run_score
+from utils_trX2dy.evaluate_utils import run_score
 
 def main():
     parser = argparse.ArgumentParser(

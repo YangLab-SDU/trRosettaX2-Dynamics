@@ -16,6 +16,8 @@ import torch
 import torch.nn as nn
 from Bio.PDB import PPBuilder,PDBParser
 from concurrent.futures import ThreadPoolExecutor
+from trRosettaX2.evoutils.attn_conv import Predictor2D
+
 # * Processing PDB to 2D geometries:dist, omega, theta, phi
 
 # region
@@ -614,8 +616,7 @@ def save_cluster_result(pdb_dir,n_clusters=10,n_files=5,output_dir=None,mode='gl
 
 # region
 
-from trRosettaX2.evoutils.attn_conv import Predictor2D
-    
+
 class DistPredictorBaseline(nn.Module):
     def __init__(self):
         super(DistPredictorBaseline, self).__init__()
