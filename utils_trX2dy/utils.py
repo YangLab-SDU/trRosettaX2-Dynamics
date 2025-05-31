@@ -253,14 +253,12 @@ def get_atom_positions_pdb(pdb_file, model=0, retain_all_res=True):
     pp = PDB.PDBParser(QUIET=True)
     structure = pp.get_structure("", pdb_file)[model]
     xyzs_all = defaultdict(list)
-    # al_seq_pdb = []
     for chain in structure.child_list:
         residues = [
             res for res in chain.child_list if PDB.is_aa(res) and not res.id[0].strip()
         ]
         try:
             seq_pdb = "".join(res_name_dict[res.resname.strip()] for res in residues)
-            # al_seq_pdb.append(seq_pdb)
         except KeyError:
             print("error")
         if retain_all_res:
@@ -287,7 +285,6 @@ def get_atom_positions_pdb(pdb_file, model=0, retain_all_res=True):
                     continue
         for atom in xyzs:
             xyzs_all[atom].append(xyzs[atom])
-    # all_seq_pdb = ''.join(al_seq_pdb)
     for atom in xyzs_all:
         xyzs_all[atom] = np.concatenate(xyzs_all[atom], axis=0)
     return xyzs_all, res_id, seq_pdb
@@ -323,6 +320,7 @@ def get_distribution_from_pdb(pred_pdb_dir):
 # region
 
 def params(flag):
+    # highly_dynamic：P=0.3,pcut=0.03,decay_rate=0.72 low_dynamic:P=0.3,pcut=0.05,decay_rate=0.7
     if flag == "0HHD":
         return 0, 0, 0.3, 0.03, 0.72
     if flag == "0LD":
@@ -427,9 +425,6 @@ def get_npz_from_pred_pdb(
             norm=False,
         )
         return processed_tmp
-    # todo:
-    # with the pred_distribution, process unprocessed_npz
-    # highly_dynamic：P=0.3,pcut=0.03,decay_rate=0.72 low_dynamic:P=0.3,pcut=0.05,decay_rate=0.7
     if angle:
         processed_dist = process_distribution_with_pred_distribution(
             unprocessed_dist=unprocessed_dist,
@@ -598,7 +593,6 @@ def save_cluster_result(pdb_dir,n_clusters=10,n_files=5,output_dir=None,mode='gl
     os.makedirs(output_dir, exist_ok=True)
 
     try:
-        
         clusters = kmeans_clustering(glocon_matrix, pdb_files,n_clusters=n_clusters)
     except ValueError:
         return "no_cluster"
