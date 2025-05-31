@@ -485,16 +485,16 @@ def folding_with_pred_npz(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
                 repeat=0,
                 start_id=0):
     base_command = f'{sys.executable} "./folding/folding.py"'
-    try:
-        os.makedirs(base_out, exist_ok=True)
-    except FileExistsError:
-        pass
-
+ 
+    os.makedirs(base_out, exist_ok=True)
+        
     def run_command(i):
-        out_file = f"{base_out}{out_name}{i}.pdb"
+        #out_file = f"{base_out}{out_name}{i}.pdb"
+        out_file = os.path.join(base_out,f"{out_name}{i}.pdb")
         command = f"{base_command} -NPZ {base_npz} -FASTA {base_fasta} -OUT {out_file} {options}"
         subprocess.run(command, shell=True)
         print(f"Executed: {command}")
+        
 
     if repeat:
         with ThreadPoolExecutor() as executor:
