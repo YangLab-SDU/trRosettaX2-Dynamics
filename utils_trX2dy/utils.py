@@ -489,7 +489,6 @@ def folding_with_pred_npz(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
     os.makedirs(base_out, exist_ok=True)
         
     def run_command(i):
-        #out_file = f"{base_out}{out_name}{i}.pdb"
         out_file = os.path.join(base_out,f"{out_name}{i}.pdb")
         command = f"{base_command} -NPZ {base_npz} -FASTA {base_fasta} -OUT {out_file} {options}"
         subprocess.run(command, shell=True)
