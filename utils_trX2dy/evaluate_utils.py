@@ -58,9 +58,12 @@ def run_score(native_pdb_dir, pred_pdb_dir, align=False, save_summary=False, sav
                     command = ["./bin/TMscore", native, pred, "-seq"]
                 else:
                     command = ["./bin/TMscore", native, pred]
-                result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                results_str += "--------------------------------------------------" + result.stdout
-
+                try:
+                    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                except PermissionError:
+                    os.system('chmod +x ./bin/TMscore')
+                    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                results_str += "--------------------------------------------------" + result.stdout                    
     # Parse TM-score outputs
     final_result = parse_compare_score_file(file=results_str, flag="file")
 
