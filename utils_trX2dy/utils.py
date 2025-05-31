@@ -1,4 +1,5 @@
 import itertools
+import json
 import os
 import re
 import string
@@ -14,7 +15,7 @@ from scipy.ndimage import gaussian_filter
 from sklearn.cluster import KMeans
 import torch
 import torch.nn as nn
-from Bio.PDB import PPBuilder,PDBParser
+from Bio.PDB import PPBuilder, PDBParser
 from concurrent.futures import ThreadPoolExecutor
 from trRosettaX2.evoutils.attn_conv import Predictor2D
 
@@ -108,6 +109,7 @@ def get_dihedrals(a, b, c, d):
 
     return np.arctan2(y, x)
 
+
 def get_angles(a, b, c):
     v = a - b
     v /= np.linalg.norm(v, axis=-1)[:, None]
@@ -118,6 +120,7 @@ def get_angles(a, b, c):
     x = np.sum(v * w, axis=1)
 
     return np.arccos(x)
+
 
 def get_neighbors(xyzs, seq, dmax, many_seq=[]):
     nres = len(xyzs["CA"])
@@ -134,7 +137,6 @@ def get_neighbors(xyzs, seq, dmax, many_seq=[]):
     if Cb.size - np.isnan(Cb).sum() <= 3:
         return True, "wrong", "wrong", "wrong", "wrong"
     if nres != len(seq):
-
         return True, "wrong", "wrong", "wrong", "wrong"
     if len(seq) <= 20:
         many_seq.append(Many_seq)
@@ -164,16 +166,13 @@ def get_neighbors(xyzs, seq, dmax, many_seq=[]):
     dist6d = np.zeros((nres, nres))
     dist6d[idx0, idx1] = np.linalg.norm(Cb[idx1] - Cb[idx0], axis=-1)
 
-
     # matrix of Ca-Cb-Cb-Ca dihedrals
     omega6d = np.zeros((nres, nres))
     omega6d[idx0, idx1] = get_dihedrals(Ca[idx0], Cb[idx0], Cb[idx1], Ca[idx1])
 
-
     # matrix of polar coord theta
     theta6d = np.zeros((nres, nres))
     theta6d[idx0, idx1] = get_dihedrals(N[idx0], Ca[idx0], Cb[idx0], Cb[idx1])
-
 
     # matrix of polar coord phi
     phi6d = np.zeros((nres, nres))
@@ -181,6 +180,7 @@ def get_neighbors(xyzs, seq, dmax, many_seq=[]):
 
     key = False
     return key, dist6d, omega6d, theta6d, phi6d
+
 
 def pros(Dist, Omega=None, Theta_asym=None, Phi_asym=None, angle=False):
     Sdist, Somega, Stheta, Sphi = [], [], [], []
@@ -248,6 +248,7 @@ def pros(Dist, Omega=None, Theta_asym=None, Phi_asym=None, angle=False):
     else:
         return np.array(SSdist)
 
+
 def get_atom_positions_pdb(pdb_file, model=0, retain_all_res=True):
     # load PDB
     pp = PDB.PDBParser(QUIET=True)
@@ -289,6 +290,7 @@ def get_atom_positions_pdb(pdb_file, model=0, retain_all_res=True):
         xyzs_all[atom] = np.concatenate(xyzs_all[atom], axis=0)
     return xyzs_all, res_id, seq_pdb
 
+
 def get_distribution_from_pdb(pred_pdb_dir):
     xyzs, res_id, seq_pdb = get_atom_positions_pdb(
         pred_pdb_dir, model=0, retain_all_res=retain_all_res
@@ -313,6 +315,7 @@ def get_distribution_from_pdb(pred_pdb_dir):
     )
     return fact_dist, fact_theta, fact_omega, fact_phi
 
+
 # endregion
 
 # * Generate new 2D geometries and structures based on the predicted 2D geometries and structures
@@ -330,6 +333,7 @@ def params(flag):
     if flag == "0LLD":
         return 0, 0, 0.7, 0.1, 0.42
 
+
 def calculate_phi_psi(structure):
     phi_psi_list = []
     ppb = PPBuilder()
@@ -344,6 +348,7 @@ def calculate_phi_psi(structure):
     phi_psi_list = [(phi, psi) for phi, psi in phi_psi_list if phi is not None and psi is not None]
     return phi_psi_list
 
+
 def ramachandran_score(phi_psi_list):
     allowed_region_count = 0
 
@@ -356,6 +361,7 @@ def ramachandran_score(phi_psi_list):
 
     return allowed_region_count / len(phi_psi_list)
 
+
 def calculate_reliability_score(pdb_file):
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('protein', pdb_file)
@@ -365,26 +371,27 @@ def calculate_reliability_score(pdb_file):
     ramachandran_score_value = ramachandran_score(phi_psi_list)
     return ramachandran_score_value
 
+
 def gaussian_smoothing(data, sigma):
     return gaussian_filter(data, sigma)
 
+
 def process_distribution_with_pred_distribution(
-    unprocessed_dist, fact_dist, norm=True, smooth=True, sigma=1.0
+        unprocessed_dist, fact_dist, norm=True, smooth=True, sigma=1.0
 ):
     tmp = np.copy(unprocessed_dist)
     processed_dist = np.copy(unprocessed_dist)
-    
+
     backward, forward, P, pcut, decay_rate = params("0HD")
     mask = unprocessed_dist.max(axis=-1) < P
 
-    
     for i, j in np.argwhere(mask):
         tmp1 = fact_dist[i, j]
         idx = np.argmax(tmp1)
         bw = backward if idx - backward >= 0 else idx
         fw = forward if idx + 1 + forward <= tmp1.size - 1 else tmp1.size - 1 - 1 - idx
-        tmp2 = tmp[i, j][idx - bw : idx + 1 + fw]
-        tmp[i, j][idx - bw : idx + 1 + fw] = np.where(
+        tmp2 = tmp[i, j][idx - bw: idx + 1 + fw]
+        tmp[i, j][idx - bw: idx + 1 + fw] = np.where(
             tmp2 < pcut, tmp2, tmp2 * decay_rate
         )
         processed_dist[i, j] = tmp[i, j] / np.sum(tmp[i, j])
@@ -395,8 +402,9 @@ def process_distribution_with_pred_distribution(
     else:
         return tmp
 
+
 def get_npz_from_pred_pdb(
-    unprocessed_npz_dir, pred_pdb_dir, tmp=False, simga=1.0, angle=True
+        unprocessed_npz_dir, pred_pdb_dir, tmp=False, simga=1.0, angle=True
 ):
     unprocessed_npz = np.load(unprocessed_npz_dir)
     if angle:
@@ -454,7 +462,7 @@ def get_npz_from_pred_pdb(
             smooth=True,
             sigma=simga,
         )
-    
+
         return processed_dist, processed_omega, processed_theta, processed_phi
     else:
         processed_dist = process_distribution_with_pred_distribution(
@@ -466,29 +474,29 @@ def get_npz_from_pred_pdb(
         )
         return processed_dist
 
-#endregion
+
+# endregion
 
 # * Generate structure based on the predicted 2D geometries
 
 # region
 
 def folding_with_pred_npz(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
-                base_fasta="../data/1TNQ-33_A.fasta",
-                base_out="../output/1TNQ/pred_pdb/",
-                out_name="pred_1TNQ",
-                options="-m 2 -r no-idp --orient",
-                repeat=0,
-                start_id=0):
+                          base_fasta="../data/1TNQ-33_A.fasta",
+                          base_out="../output/1TNQ/pred_pdb/",
+                          out_name="pred_1TNQ",
+                          options="-m 2 -r no-idp --orient",
+                          repeat=0,
+                          start_id=0):
     base_command = f'{sys.executable} "./folding/folding.py"'
- 
+
     os.makedirs(base_out, exist_ok=True)
-        
+
     def run_command(i):
-        out_file = os.path.join(base_out,f"{out_name}{i}.pdb")
+        out_file = os.path.join(base_out, f"{out_name}{i}.pdb")
         command = f"{base_command} -NPZ {base_npz} -FASTA {base_fasta} -OUT {out_file} {options}"
         subprocess.run(command, shell=True)
         print(f"Executed: {command}")
-        
 
     if repeat:
         with ThreadPoolExecutor() as executor:
@@ -496,13 +504,14 @@ def folding_with_pred_npz(base_npz="../output/1TNQ/pred_npz/1TNQ_NMR.npz",
     else:
         run_command('')
 
+
 # endregion
 
 # *cluster Generate structures
 
 # region
 
-def get_tmscore_and_rmsd(pred1,pred2):
+def get_tmscore_and_rmsd(pred1, pred2):
     command = ['./bin/TMscore', pred1, pred2]
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     result = result.stdout
@@ -512,6 +521,7 @@ def get_tmscore_and_rmsd(pred1,pred2):
         return tm_score, rmsd
     else:
         return "no_tm_score", "no_rmsd"
+
 
 def get_tmscore_and_rmsd_matrix(pdb_dir):
     pdb_files = [i for i in os.listdir(pdb_dir) if i.endswith('.pdb')]
@@ -527,12 +537,12 @@ def get_tmscore_and_rmsd_matrix(pdb_dir):
         tm_score, rmsd = get_tmscore_and_rmsd(pred1, pred2)
         tmscore_matrix[i][j] = tm_score
         rmsd_matrix[i][j] = rmsd
-    return tmscore_matrix+tmscore_matrix.T, rmsd_matrix+rmsd_matrix.T,pdb_files
+    return tmscore_matrix + tmscore_matrix.T, rmsd_matrix + rmsd_matrix.T, pdb_files
+
 
 def get_glocon_matrix(pdb_dir):
     pdb_files = [i for i in os.listdir(pdb_dir) if i.endswith('.pdb')]
     glocon_matrix = np.zeros((len(pdb_files), len(pdb_files)))
-
 
     pdb_data = {}
     for file in pdb_files:
@@ -540,7 +550,7 @@ def get_glocon_matrix(pdb_dir):
         xyzs, res_id, seq = get_atom_positions_pdb(pdb_file)
         key, dist, omega, theta_asym, phi_asym = get_neighbors(xyzs, seq, 20)
         pdb_data[file] = dist
-    
+
     for i, j in itertools.product(range(len(pdb_files)), repeat=2):
         if i <= j:
             continue
@@ -551,13 +561,14 @@ def get_glocon_matrix(pdb_dir):
 
         dist_diff = np.abs(dist1 - dist2)
         dist_diff[dist_diff <= 3] = 0
-        score = np.sum(np.triu(dist_diff))/(len(dist_diff)*(len(dist_diff)-1)/2)
+        score = np.sum(np.triu(dist_diff)) / (len(dist_diff) * (len(dist_diff) - 1) / 2)
         glocon_matrix[i][j] = score
 
-    return glocon_matrix+glocon_matrix.T, pdb_files
+    return glocon_matrix + glocon_matrix.T, pdb_files
+
 
 def kmeans_clustering(glocon_matrix, pdb_files, n_clusters=10, draw=False):
-    kmeans = KMeans(n_clusters=n_clusters,n_init=10, random_state=0).fit(glocon_matrix)
+    kmeans = KMeans(n_clusters=n_clusters, n_init=10, random_state=0).fit(glocon_matrix)
     labels = kmeans.labels_
 
     clusters = {}
@@ -568,7 +579,7 @@ def kmeans_clustering(glocon_matrix, pdb_files, n_clusters=10, draw=False):
 
     if draw:
         plt.figure(figsize=(10, 7), dpi=100)
-        plt.scatter(range(len(pdb_files)), [0]*len(pdb_files), c=labels, cmap='viridis', marker='o')
+        plt.scatter(range(len(pdb_files)), [0] * len(pdb_files), c=labels, cmap='viridis', marker='o')
         plt.title('K-Means Clustering')
         plt.xlabel('PDB Files')
         plt.ylabel('Cluster Label')
@@ -578,11 +589,12 @@ def kmeans_clustering(glocon_matrix, pdb_files, n_clusters=10, draw=False):
 
     return clusters
 
-def save_cluster_result(pdb_dir,n_clusters=10,n_files=5,output_dir=None,mode='glocon'):
+
+def save_cluster_result(pdb_dir, n_clusters=10, n_files=5, output_dir=None, mode='glocon'):
     if mode == 'glocon':
         glocon_matrix, pdb_files = get_glocon_matrix(pdb_dir)
     elif mode == 'tmscore':
-        glocon_matrix,rmsd_matrix, pdb_files = get_tmscore_and_rmsd_matrix(pdb_dir)
+        glocon_matrix, rmsd_matrix, pdb_files = get_tmscore_and_rmsd_matrix(pdb_dir)
     elif mode == 'rmsd':
         tmscore_matrix, glocon_matrix, pdb_files = get_tmscore_and_rmsd_matrix(pdb_dir)
     else:
@@ -593,7 +605,7 @@ def save_cluster_result(pdb_dir,n_clusters=10,n_files=5,output_dir=None,mode='gl
     os.makedirs(output_dir, exist_ok=True)
 
     try:
-        clusters = kmeans_clustering(glocon_matrix, pdb_files,n_clusters=n_clusters)
+        clusters = kmeans_clustering(glocon_matrix, pdb_files, n_clusters=n_clusters)
     except ValueError:
         return "no_cluster"
     for label, files in clusters.items():
@@ -602,6 +614,7 @@ def save_cluster_result(pdb_dir,n_clusters=10,n_files=5,output_dir=None,mode='gl
                 os.system(f"cp {pdb_dir}/{files[i]} {output_dir}")
             except IndexError:
                 break
+
 
 # endregion
 
@@ -620,7 +633,7 @@ class DistPredictorBaseline(nn.Module):
             f2d, f1d = self.get_f2d(msa[0])
 
         pred_distograms, reprs = self.net(f2d, msa[:, :msa_cutoff, :].long(), res_id=res_id,
-                                        return_repr=True)  # dict((1, L, L, n_bins))
+                                          return_repr=True)  # dict((1, L, L, n_bins))
         for k in pred_distograms:
             pred_distograms[k] = pred_distograms[k].softmax(-1)
         return pred_distograms, reprs
@@ -642,8 +655,8 @@ class DistPredictorBaseline(nn.Module):
         f2d_dca = self.fast_dca(msa1hot, w) if nrow > 1 else torch.zeros([ncol, ncol, 442], device=device)
 
         f2d = torch.cat([f1d[:, None, :].repeat([1, ncol, 1]),
-                        f1d[None, :, :].repeat([ncol, 1, 1]),
-                        f2d_dca], dim=-1)
+                         f1d[None, :, :].repeat([ncol, 1, 1]),
+                         f2d_dca], dim=-1)
         f2d = f2d.view([1, ncol, ncol, 442 + 2 * 42])
         return f2d, msa[0:1]
 
@@ -688,13 +701,13 @@ class DistPredictorBaseline(nn.Module):
 
         return torch.cat([features, contacts[:, :, None]], dim=2)
 
-def load_weights(model, weight_file,device,mode='weights_only'):
 
+def load_weights(model, weight_file, device, mode='weights_only'):
     if mode == 'all_model':
-        mainnet = torch.load(weight_file, map_location=device,weights_only=False)
+        mainnet = torch.load(weight_file, map_location=device, weights_only=False)
         weights = mainnet.state_dict()
     elif mode == 'weights_only':
-        weights = torch.load(weight_file, map_location=device,weights_only=True)
+        weights = torch.load(weight_file, map_location=device, weights_only=True)
     else:
         raise ValueError(f"Invalid mode: {mode}")
     model_state_dict = model.state_dict()
@@ -715,6 +728,7 @@ def load_weights(model, weight_file,device,mode='weights_only'):
     else:
         print("All layers successfully load the weights")
         return model.to(device)
+
 
 def parse_a3m(filename, limit=20000):
     seqs = []
@@ -750,8 +764,9 @@ def parse_a3m(filename, limit=20000):
 
     return msa
 
+
 def pred_2d_geometry(
-    trX2_model_pth, msa_file, save_dir=None, save_name=None, device=None
+        trX2_model_pth, msa_file, save_dir=None, save_name=None, device=None
 ):
     mainnetwork = DistPredictorBaseline()
     trX2_model = load_weights(mainnetwork, trX2_model_pth, device, mode="weights_only")
@@ -781,4 +796,59 @@ def pred_2d_geometry(
     np.savez_compressed(os.path.join(save_dir, save_name), **labels)
     pass
 
-# endregion
+
+def mymsa_to_esmmsa(msa, input_type='msa', in_torch=False):
+    if in_torch:
+        import torch
+        device = msa.device
+        token = torch.tensor([5, 10, 17, 13, 23, 16, 9, 6, 21, 12, 4, 15, 20, 18, 14, 8,
+                              11, 22, 19, 7, 30, 32], device=device)
+        cls = torch.zeros_like(msa[..., 0:1], device=device)
+        eos = 2 * torch.ones_like(msa[..., 0:1], device=device)
+        # token, cls, eos = map(lambda x: torch.from_numpy(x), [token, cls, eos])
+        if input_type == 'fasta':
+            return torch.cat([cls, token[msa], eos], dim=-1)
+        else:
+            return torch.cat([cls, token[msa]], dim=-1)
+    else:
+        token = np.array([5, 10, 17, 13, 23, 16, 9, 6, 21, 12, 4, 15, 20, 18, 14, 8,
+                          11, 22, 19, 7, 30, 32])
+        cls = np.zeros_like(msa[..., 0:1])
+        eos = 2 * np.ones_like(msa[..., 0:1])
+        if input_type == 'fasta':
+            return np.concatenate([cls, token[msa], eos], axis=-1)
+        else:
+            return np.concatenate([cls, token[msa]], axis=-1)
+
+
+def save_to_json(obj, file):
+    with open(file, "w") as f:
+        jso = json.dumps(obj, cls=NpEncoder)
+        f.write(jso)
+
+
+def read_json(file):
+    with open(file, 'r') as load_f:
+        load_dict = json.load(load_f)
+    return load_dict
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
+
+
+class Symm(nn.Module):
+    def __init__(self, pattern):
+        super(Symm, self).__init__()
+        self.pattern = pattern
+
+    def forward(self, x):
+        return (x + Rearrange(self.pattern)(x)) / 2

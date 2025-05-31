@@ -402,7 +402,7 @@ def pros(Dist,Omega=None,Theta_asym=None,Phi_asym=None,angle=False):
         Jdist = np.array([(Adist < Tdist).sum(axis=1)]).reshape(dist.shape[0], dist.shape[1])
         Jdist = np.where(Jdist == 0, 0, Jdist)
         Jdist = np.where(Jdist >= 37, 0, Jdist)
-        sdist = np.eye(37)[Jdist]  # 用NumPy实现one-hot编码
+        sdist = np.eye(37)[Jdist]
         Sdist.append(dist)
         SSdist.append(sdist)
         if angle:
@@ -455,16 +455,13 @@ def get_normal_distribution_probabilities(C, mean, std):
     normal_probabilities = (1 / (np.sqrt(2 * np.pi * std ** 2)) *
                             np.exp(-((x - mean) ** 2) / (2 * std ** 2)))
     return normal_probabilities
-def get_sample(SSdist):  # Sdist为[20,1,H,W,37]的onehot矩阵
-    # 将Sdist维度调整为[20,H,W,37]，去掉单通道维度
+def get_sample(SSdist):
     Sdist = SSdist[:, 0, :, :, :]
 
-    # 计算所有分布的总和
     all_dist = np.sum(Sdist, axis=0)
     num = Sdist.shape[0]
     H, W, C = Sdist.shape[1], Sdist.shape[2], Sdist.shape[3]
 
-    # 初始化概率矩阵
     all_prob = np.zeros((H, W, C), dtype=float)
 
     for i in range(H):

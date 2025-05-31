@@ -11,7 +11,7 @@ from torch.utils.checkpoint import checkpoint
 from math import sqrt
 from einops import rearrange, repeat, reduce
 from einops.layers.torch import Rearrange
-from .dropout import *
+from simply.models.dropout import *
 
 from .modules import TriangleAttention, TriangleMultiplication, PairTransition
 
@@ -71,7 +71,8 @@ class FeedForward(nn.Module):
 
 class Bottle2neck(nn.Module):
 
-    def __init__(self, inplanes, planes, stride=1, dilation=1, baseWidth=26, scale=4, stype='normal', expansion=4, shortcut=True):
+    def __init__(self, inplanes, planes, stride=1, dilation=1, baseWidth=26, scale=4, stype='normal', expansion=4,
+                 shortcut=True, norm=nn.InstanceNorm2d):
         """ Constructor
         Args:
             inplanes: input channel dimensionality
@@ -87,7 +88,7 @@ class Bottle2neck(nn.Module):
 
         width = int(math.floor(planes * (baseWidth / 64.0)))
         self.conv1 = nn.Conv2d(inplanes, width * scale, kernel_size=1)
-        self.bn1 = nn.InstanceNorm2d(inplanes, affine=True)
+        self.bn1 = norm(inplanes, affine=True)
 
         if scale == 1:
             self.nums = 1
@@ -97,14 +98,14 @@ class Bottle2neck(nn.Module):
         bns = []
         for i in range(self.nums):
             convs.append(nn.Conv2d(width, width, kernel_size=3, stride=stride, padding=dilation, dilation=dilation))
-            bns.append(nn.InstanceNorm2d(width, affine=True))
+            bns.append(norm(width, affine=True))
         self.convs = nn.ModuleList(convs)
         self.bns = nn.ModuleList(bns)
 
         self.conv3 = nn.Conv2d(width * scale, planes * self.expansion, kernel_size=1)
-        self.bn3 = nn.InstanceNorm2d(width * scale, affine=True)
+        self.bn3 = norm(width * scale, affine=True)
 
-        self.conv_st = nn.Conv2d(inplanes, planes * self.expansion, kernel_size=1)
+        # self.conv_st = nn.Conv2d(inplanes, planes * self.expansion, kernel_size=1)
 
         self.relu = nn.ELU(inplace=True)
         self.stype = stype
@@ -112,10 +113,16 @@ class Bottle2neck(nn.Module):
         self.width = width
         self.shortcut = shortcut
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
+        if mask is None:
+            mask2d = torch.ones_like(x[:, 0:1, :, :])
+        else:
+            mask2d = mask.permute(0, 3, 1, 2)
         residual = x
-
-        out = self.bn1(x)
+        if mask is not None:
+            out = self.bn1(x, mask=mask)
+        else:
+            out = self.bn1(x)
         out = self.relu(out)
         out = self.conv1(out)
 
@@ -125,8 +132,12 @@ class Bottle2neck(nn.Module):
                 sp = spx[i]
             else:
                 sp = sp + spx[i]
-            sp = self.relu(self.bns[i](sp))
-            sp = self.convs[i](sp)
+            if mask is not None:
+                bni = partial(self.bns[i], mask=mask)
+            else:
+                bni = self.bns[i]
+            sp = self.relu(bni(sp))
+            sp = self.convs[i](sp * mask2d)
             if i == 0:
                 out = sp
             else:
@@ -134,14 +145,18 @@ class Bottle2neck(nn.Module):
         out = torch.cat((out, spx[self.nums]), 1)
         if self.stype == 'stage':
             residual = self.conv_st(residual)
-        out = self.bn3(out)
+        if mask is not None:
+            bn3 = partial(self.bn3, mask=mask)
+        else:
+            bn3 = self.bn3
+        out = bn3(out)
         out = self.relu(out)
         out = self.conv3(out)
 
         if self.shortcut:
             out += residual
 
-        return out
+        return out * mask2d
 
 
 class TriUpdate(nn.Module):
@@ -149,6 +164,7 @@ class TriUpdate(nn.Module):
             self,
             in_dim=128,
             # dim_outer=32,
+            n_heads=4,
             dim_pair_multi=128,
             dim_pair_attn=32,
             dropout_rate_pair=.10,
@@ -160,8 +176,8 @@ class TriUpdate(nn.Module):
 
         self.pair_multi_out = TriangleMultiplication(in_dim=in_dim, dim=dim_pair_multi, direct='outgoing')
         self.pair_multi_in = TriangleMultiplication(in_dim=in_dim, dim=dim_pair_multi, direct='incoming')
-        self.pair_row_attn = TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, wise='row')
-        self.pair_col_attn = TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, wise='col')
+        self.pair_row_attn = TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, n_heads=n_heads, wise='row')
+        self.pair_col_attn = TriangleAttention(in_dim=in_dim, dim=dim_pair_attn, n_heads=n_heads, wise='col')
 
         self.pair_trans = PairTransition(dim=in_dim)
 
@@ -180,9 +196,16 @@ class TriUpdate(nn.Module):
         z = z + self.ps_dropout_row_layer(self.pair_multi_out(z)) + self.conv_stem[0](z)
         z = z + self.ps_dropout_row_layer(self.pair_multi_in(z)) + self.conv_stem[1](z)
         pair_row_attn = self.pair_row_attn
-        z = z + self.ps_dropout_row_layer(checkpoint(pair_row_attn, z)) + self.conv_stem[2](z)
+
+        if z.requires_grad:
+            z = z + self.ps_dropout_row_layer(checkpoint(pair_row_attn, z, use_reentrant=True)) + self.conv_stem[2](z)
+        else:
+            z = z + self.ps_dropout_row_layer(pair_row_attn(z)) + self.conv_stem[2](z)
         pair_col_attn = self.pair_col_attn
-        z = z + self.ps_dropout_col_layer(checkpoint(pair_col_attn, z)) + self.conv_stem[3](z)
+        if z.requires_grad:
+            z = z + self.ps_dropout_row_layer(checkpoint(pair_col_attn, z, use_reentrant=True)) + self.conv_stem[3](z)
+        else:
+            z = z + self.ps_dropout_row_layer(pair_col_attn(z)) + self.conv_stem[3](z)
         z = z + self.pair_trans(z)
 
         return z
@@ -197,7 +220,9 @@ class SelfAttention(nn.Module):
             heads=8,
             dim_head=64,
             dropout=0.,
-            tie_attn_dim=None
+            tie_attn_dim=None,
+            soft_tied=False,
+            use_pair=False,
     ):
         super().__init__()
         inner_dim = dim_head * heads
@@ -207,19 +232,22 @@ class SelfAttention(nn.Module):
         self.to_q = nn.Linear(dim, inner_dim, bias=False)
         self.to_kv = nn.Linear(dim, inner_dim * 2, bias=False)
         self.to_out = nn.Linear(inner_dim, dim)
-        self.pair_norm = nn.LayerNorm(dim_pair)
-        self.pair_linear = nn.Linear(dim_pair, heads, bias=False)
+        if use_pair:
+            self.pair_norm = nn.LayerNorm(dim_pair)
+            self.pair_linear = nn.Linear(dim_pair, heads, bias=False)
 
-        self.for_pair = nn.Sequential(
-            self.pair_norm, self.pair_linear
-        )
+            self.for_pair = nn.Sequential(
+                self.pair_norm, self.pair_linear
+            )
 
         self.dropout = nn.Dropout(dropout)
 
         self.tie_attn_dim = tie_attn_dim
-        self.seq_weight = PositionalWiseWeight(n_heads=heads)
+        self.soft_tied = soft_tied
+        if soft_tied:
+            self.seq_weight = PositionalWiseWeight(n_heads=heads)
 
-    def forward(self, *args, context=None, tie_attn_dim=None, return_attn=False, soft_tied=False):
+    def forward(self, *args, context=None, tie_attn_dim=None, return_attn=False):
         if len(args) == 2:
             x, pair_bias = args
         elif len(args) == 1:
@@ -236,7 +264,7 @@ class SelfAttention(nn.Module):
 
         if exists(tie_attn_dim):
             q, k, v = map(lambda t: rearrange(t, '(b r) h n d -> b r h n d', r=tie_attn_dim), (q, k, v))
-            if soft_tied:
+            if self.soft_tied:
                 w = self.seq_weight(rearrange(x, '(b r) l d -> b r l d', r=tie_attn_dim))  # b, L, H, R
                 dots = einsum('b i h r, b r h i d, b r h j d -> b h i j', w, q, k) * self.scale
             else:
@@ -285,33 +313,31 @@ class MSAAttention(nn.Module):
         self.tie_row_attn = tie_row_attn  # tie the row attention, from the paper 'MSA Transformer'
 
         self.attn_width = attn_class(dim, **kwargs)
-        self.attn_height = attn_class(dim, **kwargs)
+        self.attn_height = attn_class(dim, use_pair=True, **kwargs)
 
-    def forward(self, *args, shape, return_attn=False):
+    def forward(self, *args, return_attn=False):
         if len(args) == 2:
             x, pair_bias = args
         if len(args) == 1:
             x, pair_bias = args[0], None
-        if len(x.shape) == 5:
-            assert x.size(1) == 1, f'x has shape {x.size()}!'
-            x = x[:, 0, ...]
-
-        x = x.view(shape)
 
         # col-wise
         w_x = rearrange(x, 'b h w d -> (b w) h d')
-        w_out = checkpoint(self.attn_width, w_x)
+        if w_x.requires_grad:
+            w_out = checkpoint(self.attn_width, w_x, use_reentrant=True)
+        else:
+            w_out = self.attn_width(w_x)
 
         # row-wise
         tie_attn_dim = x.shape[1] if self.tie_row_attn else None
         h_x = rearrange(x, 'b h w d -> (b h) w d')
         attn_height = partial(self.attn_height, tie_attn_dim=tie_attn_dim, return_attn=return_attn)
-        # h_out, attn = self.attn_height(h_x, pair_bias, tie_attn_dim=tie_attn_dim, soft_tied=self.soft_tied, return_attn=return_attn)
-        if return_attn:
-            h_out, attn = checkpoint(attn_height, h_x, pair_bias)
+        if h_x.requires_grad:
+            h_out = checkpoint(attn_height, h_x, pair_bias, use_reentrant=True)
         else:
-            h_out = checkpoint(attn_height, h_x, pair_bias)
-        # h_out = rearrange(h_out, '(b t h) w d -> b t h w d', h=h, w=w, t=t)
+            h_out = attn_height(h_x, pair_bias)
+        if return_attn:
+            h_out, attn = h_out
 
         out = w_out.permute(0, 2, 1, 3) + h_out
         out /= 2
@@ -341,33 +367,18 @@ class PositionalWiseWeight(nn.Module):
 class UpdateX(nn.Module):
     def __init__(self, in_dim=128, dim_msa=32, dim=128):
         super(UpdateX, self).__init__()
-        self.norm = nn.LayerNorm(in_dim)
         self.proj_down1 = nn.Linear(in_dim, dim_msa)
-        # self.seq_weight = PositionalWiseWeight(in_dim)
-        # self.proj_down2 = nn.Linear(dim_msa ** 2 * 4 + dim + 8, dim)
         self.proj_down2 = nn.Linear(dim_msa ** 2, dim)
         self.elu = nn.ELU(inplace=True)
-        self.bn1 = nn.InstanceNorm2d(dim, affine=True)
-        self.conv1 = nn.Conv2d(dim, dim, 3, padding=1)
-        self.bn2 = nn.InstanceNorm2d(dim, affine=True)
-        self.conv2 = nn.Conv2d(dim, dim, 3, padding=1)
 
-    def forward(self, x, m, w=None):
+    def forward(self, x, m):
         m = self.proj_down1(m)  # b,r,l,d
         nrows = m.shape[1]
-        outer_product = torch.einsum('brid,brjc -> bijcd', m, m) / nrows
+        outer_product = torch.einsum('brid,brjc -> bijcd', m / nrows, m)
         outer_product = rearrange(outer_product, 'b i j c d -> b i j (c d)')
         outer_product = self.proj_down2(outer_product)
-        # pair_feats = torch.cat([x, outer_product], dim=-1)
         pair_feats = x + outer_product
-        # pair_feats = rearrange(pair_feats,'b i j d -> b d i j')
-        # out = self.bn1(pair_feats)
-        # out = self.elu(out)
-        # out = self.conv1(out)
-        # out = self.bn2(out)
-        # out = self.elu(out)
-        # out = self.conv2(out)
-        # return rearrange(pair_feats + out, 'b d i j -> b i j d')
+
         return pair_feats
 
 
@@ -414,14 +425,13 @@ class relpos(nn.Module):
 
 
 class InputEmbedder(nn.Module):
-    def __init__(self):
+    def __init__(self, dim=128):
         super(InputEmbedder, self).__init__()
-        self.relpos = relpos()
+        self.relpos = relpos(dim=dim)
 
     def forward(self, z, res_id):
         z = z + self.relpos(res_id)
         return z
-
 
 # main class
 class SequentialSequence(nn.Module):
@@ -433,43 +443,23 @@ class SequentialSequence(nn.Module):
             self,
             x,
             m,
-            msa_shape,
-            gpu_lst=[0, 1],
-            **kwargs
     ):
         layer_ind = 0
         for attn2d, msa_attn, cross_attn, msa_ff, msa_cross_attn in self.blocks:
             layer_ind += 1
-            if torch.cuda.is_available():
-                if layer_ind == 5:
-                    x, m = x.cuda(gpu_lst[1]), m.cuda(gpu_lst[1])
-                if layer_ind >= 5:
-                    attn2d, msa_attn, msa_ff, cross_attn = \
-                        attn2d.cuda(gpu_lst[1]), msa_attn.cuda(gpu_lst[1]), msa_ff.cuda(gpu_lst[1]), cross_attn.cuda(gpu_lst[1])
 
-            # msa_attn = partial(msa_attn, return_attn=True, shape=msa_shape)
-            m_out = msa_attn(m, x, return_attn=False, shape=msa_shape)
-            # m_out, attn_map = checkpoint(msa_attn, m, x)
+            m_out = msa_attn(m, x, return_attn=False)
             m = m_out + m
             m = m + msa_ff(m)
 
             # cross attention
-            # attn_map = rearrange(attn_map, 'b h i j -> b i j h')
             x = cross_attn(x, m)
-
-            # conv
             x = attn2d(x)
 
             m = msa_cross_attn(x, m)
 
-            # if layer_ind < len(self.blocks):
-            #     m = msa_cross_attn(x, m)
-
-            if len(x.shape) == 5:
-                assert x.size(1) == 1, f'x has shape{x.shape}!'
-                x = x[:, 0, ...]
         if torch.cuda.is_available():
-            return x.cuda(gpu_lst[0]), m.cuda(gpu_lst[0])
+            torch.cuda.empty_cache()
         return x, m
 
 
@@ -503,7 +493,7 @@ class Predictor2D(nn.Module):
         )
         self.token_emb = nn.Embedding(num_tokens, dim)
         self.linear_emb = nn.Linear(768, dim)
-        self.input_emb = InputEmbedder()
+        self.input_emb = InputEmbedder(dim=dim)
 
         # main trunk modules
 
@@ -513,8 +503,9 @@ class Predictor2D(nn.Module):
             prenorm = partial(PreNorm, dim)
 
             layers.append(nn.ModuleList([
-                TriUpdate(in_dim=128),  # for seq
-                prenorm(MSAAttention(dim=dim, dim_pair=dim, seq_len=max_seq_len, heads=heads, dim_head=dim_head, dropout=attn_dropout, tie_row_attn=msa_tie_row_attn,
+                TriUpdate(in_dim=dim),  # for seq
+                prenorm(MSAAttention(dim=dim, dim_pair=dim, seq_len=max_seq_len, heads=heads, dim_head=dim_head,
+                                     dropout=attn_dropout, tie_row_attn=msa_tie_row_attn,
                                      )),
                 UpdateX(in_dim=dim, dim=dim),
                 prenorm(FeedForward(dim=dim, dropout=ff_dropout)),
@@ -540,8 +531,7 @@ class Predictor2D(nn.Module):
             preprocess=True,
             return_repr=False,
             to_prob=False,
-            mask=None,
-            msa_mask=None,
+            rec_reprs=None
     ):
         n, device = f2d.shape[1], f2d.device
         if res_id is None:
@@ -549,39 +539,20 @@ class Predictor2D(nn.Module):
         res_id = res_id.view(1, n)
 
         if preprocess:
-            # add dca
-            # x = torch.cat([x, f2d], dim=-1).permute(0, 3, 1, 2)
             x = f2d.permute(0, 3, 1, 2)
             x = self.linear1(x).permute(0, 2, 3, 1)
-
-            # embed multiple sequence alignment (msa)
 
             m = self.token_emb(msa)
             if exists(msa_emb):
                 m += self.linear_emb(msa_emb)
         else:
             x, m = f2d, msa_emb
-        msa_shape = m.shape
+        if rec_reprs is not None:
+            m[:, 0] = m[:, 0] + rec_reprs['single']
+            x = x + rec_reprs['pair']
         x = self.input_emb(x, res_id)
-
-        # flatten
-
-        seq_shape = [x.size(0), 1, x.size(1), x.size(2), x.size(3)]
-        # trunk
-
-        x, m = self.net(
-            x,  # seq
-            m,  # msa
-            msa_shape,
-            gpu_lst=self.gpu_lst
-        )
-
-        # remove models, if present
-
-        # x = x.view(seq_shape)
+        x, m = self.net(x, m)
         x = x.permute(0, 3, 1, 2)
-
-        # embeds to distogram
 
         trunk_embeds = (x + rearrange(x, 'b d i j -> b d j i')) * 0.5  # symmetrize
         dist_logits = self.to_dist_logits(trunk_embeds)
@@ -602,10 +573,3 @@ class Predictor2D(nn.Module):
             reprs = {'pair': x, 'msa': m}
             return pred2d, reprs
         return pred2d
-
-
-if __name__ == '__main__':
-    af2 = Predictor2D(dim=20)
-    pred = af2(torch.ones((1, 10)).long(), msa=torch.ones((1, 8, 10)).long())
-    for k in pred:
-        print(pred[k].shape)
