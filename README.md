@@ -13,6 +13,10 @@ Starting from an MSA, the trRosettaX2-Dynamics pipeline comprises the following 
 
  - 2D geometries prediction using a transformer network.
  - Generating dynamic structures through a physics-based sampling process
+
+The inference code for the original trRosettaX2, which adopts an end-to-end approach to predict a static structure, is available at [trRosettaX2](./trRosettaX2)
+
+
 ----
 Installation
 ----
