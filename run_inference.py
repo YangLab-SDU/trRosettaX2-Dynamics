@@ -4,7 +4,8 @@ import os
 import argparse
 import shutil
 import numpy as np
-
+import re
+import collections
 from utils_trX2dy.utils import (
     folding_with_pred_npz,
     calculate_reliability_score,
@@ -45,7 +46,7 @@ def generate_npz_and_pdb(
         int: Total number of structures generated (index of last structure).
     """
     print("Start generating the initial structures")
-    # Generate N initial structures using trRosetta��
+    # Generate N initial structures using trRosettaX2
     folding_with_pred_npz(
         base_npz=f'"{initial_npz}"',
         base_fasta=f'"{fasta}"',
@@ -166,6 +167,116 @@ def move_and_delete_subfolders(parent_folder):
                 except OSError:
                     pass
 
+def rename_pdb_files(folder_path, num_conf1_others):
+    if not os.path.isdir(folder_path):
+        return
+    initial_x_to_rename = [] 
+    initial_x_1_to_rename = [] 
+    other_to_rename = []
+    pattern_initial_x = re.compile(r"initial(\d+)\.pdb$", re.IGNORECASE)
+    pattern_initial_x_1 = re.compile(r"initial(\d+)_1\.pdb$", re.IGNORECASE)
+    pattern_conf_1 = re.compile(r"conf_1_(\d+)\.pdb$", re.IGNORECASE)
+    pattern_conf_2 = re.compile(r"conf_2_(\d+)\.pdb$", re.IGNORECASE)
+    pattern_generic_numbered_pdb = re.compile(r".*(\d+)\.pdb$", re.IGNORECASE)
+    max_conf_1_index_overall = 0
+    max_conf_2_index_overall = 0
+    max_initialX_projected_conf1_index = 0
+    existing_conf1_from_others_processed_count = 0
+    for filename in os.listdir(folder_path):
+        if not filename.lower().endswith(".pdb"):
+            continue
+
+        full_path = os.path.join(folder_path, filename)
+        if not os.path.isfile(full_path):
+            continue
+
+        match_conf_1 = pattern_conf_1.match(filename)
+        match_conf_2 = pattern_conf_2.match(filename)
+
+        if match_conf_1:
+            idx = int(match_conf_1.group(1))
+            max_conf_1_index_overall = max(max_conf_1_index_overall, idx)
+            continue 
+        elif match_conf_2:
+            idx = int(match_conf_2.group(1))
+            max_conf_2_index_overall = max(max_conf_2_index_overall, idx)
+            continue
+
+        match_initial_x = pattern_initial_x.match(filename)
+        match_initial_x_1 = pattern_initial_x_1.match(filename)
+
+        if match_initial_x:
+            x_val = int(match_initial_x.group(1))
+            initial_x_to_rename.append((filename, x_val))
+            max_initialX_projected_conf1_index = max(max_initialX_projected_conf1_index, x_val + 1) 
+        elif match_initial_x_1:
+            x_val = int(match_initial_x_1.group(1))
+            initial_x_1_to_rename.append((filename, x_val))
+        elif pattern_generic_numbered_pdb.match(filename): #
+            other_to_rename.append(filename)
+
+    for filename in os.listdir(folder_path):
+        match_conf_1 = pattern_conf_1.match(filename)
+        if match_conf_1:
+            idx = int(match_conf_1.group(1))
+            if idx > max_initialX_projected_conf1_index:
+                existing_conf1_from_others_processed_count += 1
+                
+    renaming_map = collections.OrderedDict()
+
+    if initial_x_to_rename:
+        initial_x_to_rename.sort(key=lambda x: x[1]) 
+        for old_name, x_val in initial_x_to_rename:
+            shifted_x_val = x_val + 1
+            new_name = f"conf_1_{shifted_x_val}.pdb"
+            renaming_map[os.path.join(folder_path, old_name)] = os.path.join(folder_path, new_name)
+            max_conf_1_index_overall = max(max_conf_1_index_overall, shifted_x_val)
+    
+    if initial_x_1_to_rename:
+        initial_x_1_to_rename.sort(key=lambda x: x[1])
+        for old_name, x_val in initial_x_1_to_rename:
+            shifted_x_val = x_val + 1
+            new_name = f"conf_2_{shifted_x_val}.pdb"
+            renaming_map[os.path.join(folder_path, old_name)] = os.path.join(folder_path, new_name)
+            max_conf_2_index_overall = max(max_conf_2_index_overall, shifted_x_val)
+    
+    conf_1_seq_counter = max_conf_1_index_overall + 1
+    conf_2_seq_counter = max_conf_2_index_overall + 1
+
+    if other_to_rename:
+        other_to_rename.sort()
+        remaining_conf1_others_budget = max(0, num_conf1_others - existing_conf1_from_others_processed_count)
+        conf_1_additional_files = other_to_rename[:remaining_conf1_others_budget]
+        conf_2_additional_files = other_to_rename[remaining_conf1_others_budget:]
+
+        for old_name in conf_1_additional_files:
+            new_name = f"conf_1_{conf_1_seq_counter}.pdb"
+            renaming_map[os.path.join(folder_path, old_name)] = os.path.join(folder_path, new_name)
+            conf_1_seq_counter += 1
+
+        for old_name in conf_2_additional_files:
+            new_name = f"conf_2_{conf_2_seq_counter}.pdb"
+            renaming_map[os.path.join(folder_path, old_name)] = os.path.join(folder_path, new_name)
+            conf_2_seq_counter += 1
+
+    if not renaming_map:
+        return
+
+    for old_path, new_path in renaming_map.items():
+        old_name = os.path.basename(old_path)
+        new_name = os.path.basename(new_path)
+
+        if old_path == new_path:
+            continue
+        try:
+            if os.path.exists(new_path) and not os.path.samefile(old_path, new_path):
+                continue
+            os.rename(old_path, new_path)
+        except FileNotFoundError:
+            print(f"    error: '{old_name}' not found, may have been renamed or deleted.")  
+        except Exception as e:
+            print(f"   rename '{old_name}' to '{new_name}' failed: {e}")
+
 def run_single(name, fasta_file, msa_file, save_dir, args):
     """
     Run prediction for a single sample given file paths and CLI arguments.
@@ -216,11 +327,13 @@ def run_single(name, fasta_file, msa_file, save_dir, args):
             name, npz_tmp_dir, os.path.join(save_pdb_dir, "NMR/"), initial_npz1, fasta_file,
             N=args.init_num, Nmax=args.Nmax, angle=args.angle, tta_opt=tta_opt
         )
+        num = total_num
         print("All structures generation finished.")
         print(f"Total structures generated: {total_num+args.init_num}")
     # Clean up temporary NPZs and flatten PDB output directories
     shutil.rmtree(npz_tmp_dir)
     move_and_delete_subfolders(save_pdb_dir)
+    rename_pdb_files(save_pdb_dir,num)
     print(f"Inference for sample '{name}' completed. Results in {save_content}")
 
 def main(args):
