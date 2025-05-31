@@ -8,12 +8,14 @@ channels:
   # - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
   - pytorch
   - nvidia
+  - bioconda
   - conda-forge
 dependencies:
   - numpy=1.25.2
   - python=3.10
   - pyrosetta=2024.39+release.59628fb
   - cudatoolkit=11.8
+  - bioconda::hhsuite
   - pytorch::pytorch=2.5.1=py3.10_cuda11.8_cudnn9.1.0_0
   - pytorch::torchaudio=2.5.1=py310_cu118
   - pytorch::torchvision=0.20.1=py310_cu118
@@ -25,3 +27,4 @@ dependencies:
       - scipy==1.11.2
       - scikit_learn==1.2.2
       - biopython==1.81
+      - dm-tree==0.1.9
