@@ -17,9 +17,11 @@ from utils_trX2dy.utils import read_json, parse_a3m, mymsa_to_esmmsa
 parser = ArgumentParser()
 parser.add_argument('-i',
                     '--msa',
+                    required=True,
                     help='(required) input MSA file')
 parser.add_argument('-o',
                     '--out_dir',
+                    required=True,
                     help='(required) output directory')
 parser.add_argument('-mdir', '--model_pth',
                     default=f'model_pth/trX2_orig',
