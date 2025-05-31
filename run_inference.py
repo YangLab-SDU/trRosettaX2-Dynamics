@@ -49,7 +49,7 @@ def generate_npz_and_pdb(
     folding_with_pred_npz(
         base_npz=f'"{initial_npz}"',
         base_fasta=f'"{fasta}"',
-        base_out=f'"{pred_pdb_dir}"',
+        base_out=f'{pred_pdb_dir}',
         out_name="initial",
         options=tta_opt,
         repeat=N,
@@ -103,7 +103,7 @@ def generate_npz_and_pdb(
         folding_with_pred_npz(
             base_npz=f'"{current_npz}"',
             base_fasta=f'"{fasta}"',
-            base_out=f'"{pred_pdb_dir}"',
+            base_out=f'{pred_pdb_dir}',
             out_name=pdb_name + str(iter_n),
             options=tta_opt,
         )
