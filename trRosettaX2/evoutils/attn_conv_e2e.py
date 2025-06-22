@@ -11,7 +11,7 @@ from torch.utils.checkpoint import checkpoint
 from math import sqrt
 from einops import rearrange, repeat, reduce
 from einops.layers.torch import Rearrange
-from simply.models.dropout import *
+from .dropout import *
 
 from .modules import TriangleAttention, TriangleMultiplication, PairTransition
 
