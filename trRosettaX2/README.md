@@ -13,6 +13,7 @@ Materials
 trRosettaX2 and trRosettaX2-Dynamics operate in the same environment (`trX2dy`); therefore, it is only necessary to download the pre-trained parameters for trRosettaX2 if the `trX2dy` environment has been created.
 
 ```bash
+# cd trRosettaX2 # if you are in the root directory.
 mkdir -p model_pth
 cd model_pth
 wget http://yanglab.qd.sdu.edu.cn/trRosetta/downloadX2/trX2_orig_models.tar.bz2
