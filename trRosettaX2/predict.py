@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).absolute().parent.parent))
 from trRosettaX2.main_chunk import Folding
 from trRosettaX2 import esm
 from trRosettaX2.strutils.utils_3d.prot_converter import ProtConverter

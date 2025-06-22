@@ -16,7 +16,7 @@ from typing import Optional, List, Tuple
 import torch
 import torch.nn as nn
 
-from RNA.models.utils_rhofold.tensor_utils import (
+from .tensor_utils import (
     permute_final_dims,
     flatten_final_dims,
 )

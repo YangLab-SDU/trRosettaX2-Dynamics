@@ -16,7 +16,7 @@ from typing import Tuple, Callable, Any, Dict, Sequence, Optional
 
 import torch
 
-from models.utils_rhofold.tensor_utils import (
+from .tensor_utils import (
     tree_map,
     tensor_tree_map,
 )

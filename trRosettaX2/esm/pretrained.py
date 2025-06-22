@@ -16,8 +16,7 @@ import sys
 
 from esm.modelv2.esm2 import ESM2
 
-sys.path.append(str(Path.home()))
-from utils_wwk.json_file import *
+from .json_file import *
 
 
 def load_model_and_alphabet(model_name, max_tokens_per_msa=2 ** 16):
