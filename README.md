@@ -146,6 +146,23 @@ The script copies the top `n_files` structures from each cluster into the output
 
 * Ensure all paths and file names are correctly specified. Consult the inline help (`-h` or `--help`) for each script for detailed usage.
 
+Citation
+---
+Please cite the following paper if you use our code or model:
+```bibtex
+@article{trX2-D,
+author = {Xiang, Chenxiao and Wang, Wenkai and Peng, Zhenling and Yang, Jianyi},
+title = {Generating Dynamic Structures Through Physics-Based Sampling of Predicted Inter-Residue Geometries},
+journal = {Advanced Science},
+pages = {e18469},
+year={2026},
+publisher={Wiley Online Library},
+doi = {https://doi.org/10.1002/advs.202518469}
+}
+
+
+```
+[paper]: https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202518469
 
 
 
